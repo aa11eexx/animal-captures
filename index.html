@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animal Capture Records</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f4f2ee;
+      --surface: #ffffff;
+      --surface2: #edeae3;
+      --border: rgba(0,0,0,0.10);
+      --border-strong: rgba(0,0,0,0.18);
+      --text: #1a1814;
+      --muted: #7a746a;
+      --accent: #1d5fa8;
+      --accent-light: #e6f0fb;
+      --accent-text: #0c3d6e;
+      --radius: 10px;
+      --radius-lg: 16px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* TOP BAR */
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.25rem; height: 58px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .topbar-title { font-size: 17px; font-weight: 600; }
+    .status-pill { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); background: var(--surface2); border-radius: 20px; padding: 4px 10px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; transition: background 0.3s; }
+    .dot.on { background: #3da45a; }
+
+    /* TABS */
+    .tab-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.25rem; display: flex; gap: 0; overflow-x: auto; }
+    .tab-btn { padding: 12px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif; font-weight: 500; color: var(--muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color 0.15s, border-color 0.15s; }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* MAIN */
+    .main { max-width: 640px; margin: 0 auto; padding: 1.25rem 1rem 4rem; }
+
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1.25rem; }
+    .stat-card { background: var(--surface); border-radius: var(--radius); padding: 10px 12px; text-align: center; border: 0.5px solid var(--border); }
+    .stat-num { font-size: 22px; font-weight: 600; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* FILTER ROW */
+    .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+    .filter-btn { height: 30px; padding: 0 12px; border-radius: 20px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* RECORDS */
+    .record-card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 8px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+    .record-card:hover { border-color: var(--accent); }
+    .record-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+    .animal-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .record-main { flex: 1; min-width: 0; }
+    .record-title { font-size: 14px; font-weight: 500; color: var(--text); }
+    .record-sub { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .badge-captured { background: #fff3cd; color: #7a5800; }
+    .badge-shelter  { background: #dbeafe; color: #1e3a8a; }
+    .badge-vet      { background: #fce7f3; color: #831843; }
+    .badge-returned { background: #d1fae5; color: #065f46; }
+    .badge-adopted  { background: #d1fae5; color: #065f46; }
+    .badge-released { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    /* RECORD DETAIL (expanded) */
+    .record-detail { border-top: 0.5px solid var(--border); padding: 12px 14px; display: none; background: #fafaf8; }
+    .record-detail.open { display: block; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 12px; }
+    .detail-row { font-size: 13px; }
+    .detail-label { color: var(--muted); font-size: 11px; margin-bottom: 1px; }
+    .detail-val { color: var(--text); font-weight: 500; }
+    .status-select { width: 100%; height: 36px; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 0 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--surface); color: var(--text); margin-bottom: 8px; }
+    .del-btn { font-size: 12px; color: #c0392b; background: none; border: none; cursor: pointer; text-decoration: underline; font-family: 'DM Sans', sans-serif; }
+
+    /* EMPTY */
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 14px; }
+
+    /* FORM */
+    .form-card { background: var(--surface); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 1.25rem; }
+    .form-section { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 1rem 0 8px; }
+    .form-section:first-child { margin-top: 0; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    input, select, textarea { width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 0 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface2); outline: none; transition: border-color 0.15s, background 0.15s; height: 40px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    textarea { height: 72px; padding: 8px 10px; resize: vertical; }
+    .submit-btn { width: 100%; height: 44px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 1rem; transition: background 0.15s; }
+    .submit-btn:hover { background: var(--accent-text); }
+    .submit-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+    /* NEW CAPTURE BTN */
+    .new-btn { width: 100%; height: 42px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; margin-bottom: 1rem; }
+
+    @media (max-width: 480px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-icon">🐾</div>
+    <span class="topbar-title">Capture Records</span>
+  </div>
+  <div class="status-pill">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Connecting...</span>
+  </div>
+</nav>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('records', this)">Active records</button>
+  <button class="tab-btn" onclick="switchTab('new', this)">+ New capture</button>
+</div>
+
+<main class="main">
+
+  <!-- RECORDS VIEW -->
+  <div id="tab-records">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#b45309" id="s-captured">0</div><div class="stat-label">Captured</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#1e3a8a" id="s-shelter">0</div><div class="stat-label">In shelter</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#065f46" id="s-closed">0</div><div class="stat-label">Closed</div></div>
+    </div>
+
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('active', this)">Active</button>
+      <button class="filter-btn" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('captured', this)">Captured</button>
+      <button class="filter-btn" onclick="setFilter('shelter', this)">In shelter</button>
+      <button class="filter-btn" onclick="setFilter('closed', this)">Closed</button>
+    </div>
+
+    <div id="records-list"><div class="empty">Loading records...</div></div>
+  </div>
+
+  <!-- NEW CAPTURE FORM -->
+  <div id="tab-new" style="display:none">
+    <div class="form-card">
+
+      <div class="form-section">Date & location</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="f-date" />
+        </div>
+        <div class="form-group">
+          <label>Time *</label>
+          <input type="time" id="f-time" />
+        </div>
+        <div class="form-group full">
+          <label>Place of catch *</label>
+          <input type="text" id="f-place" placeholder="Street, area, GPS..." />
+        </div>
+      </div>
+
+      <div class="form-section">Animal details</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Type of animal *</label>
+          <select id="f-type">
+            <option value="">Select...</option>
+            <option>Dog</option>
+            <option>Cat</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sex</label>
+          <select id="f-sex">
+            <option value="">Unknown</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Colour</label>
+          <input type="text" id="f-colour" placeholder="e.g. black and white" />
+        </div>
+        <div class="form-group">
+          <label>Animal ID / chip</label>
+          <input type="text" id="f-animal-id" placeholder="Chip or tag number" />
+        </div>
+        <div class="form-group">
+          <label>Difficulty of catch</label>
+          <select id="f-difficulty">
+            <option value="">—</option>
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Difficult</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Placed at</label>
+          <select id="f-placed">
+            <option value="">—</option>
+            <option>Animal shelter</option>
+            <option>Vet clinic</option>
+            <option>Temporary foster</option>
+            <option>Returned to owner</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">People involved</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Caught by *</label>
+          <input type="text" id="f-caught-by" placeholder="Worker name" />
+        </div>
+        <div class="form-group">
+          <label>Reported by</label>
+          <input type="text" id="f-reported-by" placeholder="Who called it in" />
+        </div>
+        <div class="form-group full">
+          <label>Owner (if known)</label>
+          <input type="text" id="f-owner" placeholder="Name, contact..." />
+        </div>
+      </div>
+
+      <div class="form-section">Notes</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Additional notes</label>
+          <textarea id="f-notes" placeholder="Condition, behaviour, injuries..."></textarea>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="submit-btn" onclick="submitRecord()">Submit capture record</button>
+    </div>
+  </div>
+
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ── Replace with your Firebase config ──
+  const firebaseConfig = {
+    apiKey:            "AIzaSyD_ASq6TxkwMJLhFsyY2Ry9wgTzAmP-8ls",
+    authDomain:        "shopping-list-d15a1.firebaseapp.com",
+    databaseURL:       "https://shopping-list-d15a1-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "shopping-list-d15a1",
+    storageBucket:     "shopping-list-d15a1.firebasestorage.app",
+    messagingSenderId: "1089625097719",
+    appId:             "1:1089625097719:web:acaaa7fd88a67ca8a69af2"
+  };
+
+  const app      = initializeApp(firebaseConfig);
+  const db       = getDatabase(app);
+  const recRef   = ref(db, "captures");
+
+  let allRecords = {};
+  let currentFilter = "active";
+  let openId = null;
+
+  const CLOSED = ["returned", "adopted", "released"];
+
+  // Set today's date and current time as defaults
+  const now = new Date();
+  document.getElementById("f-date").value = now.toISOString().split("T")[0];
+  document.getElementById("f-time").value = now.toTimeString().slice(0,5);
+
+  function setStatus(state) {
+    document.getElementById("status-dot").className = "dot " + (state === "connected" ? "on" : "");
+    document.getElementById("status-text").textContent = state === "connected" ? "Live" : "Offline";
+  }
+
+  onValue(recRef, snap => {
+    allRecords = snap.val() || {};
+    setStatus("connected");
+    render();
+  }, () => setStatus(""));
+
+  function statusBadge(s) {
+    const map = {
+      captured: ["Captured","badge-captured"],
+      shelter:  ["In shelter","badge-shelter"],
+      vet:      ["At vet","badge-vet"],
+      returned: ["Returned","badge-returned"],
+      adopted:  ["Adopted","badge-adopted"],
+      released: ["Released","badge-released"],
+    };
+    const [label, cls] = map[s] || ["Unknown","badge-released"];
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  function animalIcon(type) {
+    const bg = type === "Dog" ? "#fef3c7" : type === "Cat" ? "#e0f2fe" : "#f1f5f9";
+    const em = type === "Dog" ? "🐕" : type === "Cat" ? "🐈" : "🐾";
+    return `<div class="animal-icon" style="background:${bg}">${em}</div>`;
+  }
+
+  function render() {
+    const entries = Object.entries(allRecords).map(([id,v]) => ({id,...v}))
+      .sort((a,b) => (b.ts||0) - (a.ts||0));
+
+    // Stats
+    const total    = entries.length;
+    const captured = entries.filter(r => r.status === "captured").length;
+    const shelter  = entries.filter(r => r.status === "shelter" || r.status === "vet").length;
+    const closed   = entries.filter(r => CLOSED.includes(r.status)).length;
+    document.getElementById("s-total").textContent    = total;
+    document.getElementById("s-captured").textContent = captured;
+    document.getElementById("s-shelter").textContent  = shelter;
+    document.getElementById("s-closed").textContent   = closed;
+
+    // Filter
+    let filtered = entries;
+    if (currentFilter === "active")   filtered = entries.filter(r => !CLOSED.includes(r.status));
+    if (currentFilter === "captured") filtered = entries.filter(r => r.status === "captured");
+    if (currentFilter === "shelter")  filtered = entries.filter(r => r.status === "shelter" || r.status === "vet");
+    if (currentFilter === "closed")   filtered = entries.filter(r => CLOSED.includes(r.status));
+
+    const container = document.getElementById("records-list");
+    if (!filtered.length) {
+      container.innerHTML = `<div class="empty">${total ? "No records match this filter." : "No records yet — add the first capture!"}</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(r => `
+      <div class="record-card" id="card-${r.id}">
+        <div class="record-header" onclick="toggleCard('${r.id}')">
+          ${animalIcon(r.type)}
+          <div class="record-main">
+            <div class="record-title">${r.type || "Animal"} — ${r.sex || "unknown sex"}${r.colour ? ", " + r.colour : ""}</div>
+            <div class="record-sub">${r.place || "—"} · ${r.date || ""} ${r.time || ""} · ${r.caughtBy || "—"}</div>
+          </div>
+          ${statusBadge(r.status || "captured")}
+        </div>
+        <div class="record-detail ${openId === r.id ? "open" : ""}" id="detail-${r.id}">
+          <div class="detail-grid">
+            ${field("Date & time", (r.date||"—") + " " + (r.time||""))}
+            ${field("Place", r.place)}
+            ${field("Animal type", r.type)}
+            ${field("Sex", r.sex)}
+            ${field("Colour", r.colour)}
+            ${field("Animal ID / chip", r.animalId)}
+            ${field("Difficulty", r.difficulty)}
+            ${field("Placed at", r.placed)}
+            ${field("Caught by", r.caughtBy)}
+            ${field("Reported by", r.reportedBy)}
+            ${field("Owner", r.owner)}
+          </div>
+          ${r.notes ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;"><span style="font-size:11px;display:block;margin-bottom:2px;">Notes</span>${r.notes}</div>` : ""}
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Update status</div>
+          <select class="status-select" onchange="updateStatus('${r.id}', this.value)">
+            <option value="captured"  ${r.status==="captured" ?"selected":""}>Captured</option>
+            <option value="shelter"   ${r.status==="shelter"  ?"selected":""}>In shelter</option>
+            <option value="vet"       ${r.status==="vet"      ?"selected":""}>At vet</option>
+            <option value="returned"  ${r.status==="returned" ?"selected":""}>Returned to owner</option>
+            <option value="adopted"   ${r.status==="adopted"  ?"selected":""}>Adopted</option>
+            <option value="released"  ${r.status==="released" ?"selected":""}>Released</option>
+          </select>
+          <button class="del-btn" onclick="deleteRecord('${r.id}')">Delete record</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function field(label, val) {
+    if (!val) return "";
+    return `<div class="detail-row"><div class="detail-label">${label}</div><div class="detail-val">${val}</div></div>`;
+  }
+
+  window.toggleCard = function(id) {
+    openId = openId === id ? null : id;
+    render();
+  };
+
+  window.updateStatus = function(id, status) {
+    update(ref(db, "captures/" + id), { status });
+  };
+
+  window.deleteRecord = function(id) {
+    if (confirm("Delete this record?")) remove(ref(db, "captures/" + id));
+  };
+
+  window.setFilter = function(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    render();
+  };
+
+  window.switchTab = function(tab, btn) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-records").style.display = tab === "records" ? "" : "none";
+    document.getElementById("tab-new").style.display     = tab === "new"     ? "" : "none";
+  };
+
+  window.submitRecord = function() {
+    const date      = document.getElementById("f-date").value;
+    const time      = document.getElementById("f-time").value;
+    const place     = document.getElementById("f-place").value.trim();
+    const type      = document.getElementById("f-type").value;
+    const caughtBy  = document.getElementById("f-caught-by").value.trim();
+    if (!date || !place || !type || !caughtBy) {
+      alert("Please fill in Date, Place, Animal type and Caught by.");
+      return;
+    }
+    const btn = document.getElementById("submit-btn");
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+
+    push(recRef, {
+      date, time, place,
+      type,
+      sex:        document.getElementById("f-sex").value,
+      colour:     document.getElementById("f-colour").value.trim(),
+      animalId:   document.getElementById("f-animal-id").value.trim(),
+      difficulty: document.getElementById("f-difficulty").value,
+      placed:     document.getElementById("f-placed").value,
+      caughtBy,
+      reportedBy: document.getElementById("f-reported-by").value.trim(),
+      owner:      document.getElementById("f-owner").value.trim(),
+      notes:      document.getElementById("f-notes").value.trim(),
+      status:     "captured",
+      ts:         Date.now()
+    }).then(() => {
+      btn.disabled = false;
+      btn.textContent = "Submit capture record";
+      // Reset form
+      ["f-place","f-colour","f-animal-id","f-caught-by","f-reported-by","f-owner","f-notes"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("f-type").value = "";
+      document.getElementById("f-sex").value = "";
+      document.getElementById("f-difficulty").value = "";
+      document.getElementById("f-placed").value = "";
+      // Switch to records view
+      document.querySelector(".tab-btn").click();
+    });
+  };
+</script>
+</body>
+</html>
