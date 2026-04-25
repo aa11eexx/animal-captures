@@ -903,7 +903,7 @@
     oneCol("Majiteľ (ak je známy)",r.owner);
     oneCol("Ukončenie",r.status==="shelter"?"Odovzdané na útulok":r.status==="backtoowner"?"Odovzdané majiteľovi":"—");
 
-    if(r.notes){ section(4,"Poznámky"); oneCol("Poznámky",r.notes); }
+    if(r.notes){ section(4,"Poznámky"); oneCol("",r.notes); }
 
     doc.setFillColor(240,242,245); doc.rect(0,287,W,10,"F");
     doc.setTextColor(120,116,106); doc.setFontSize(8);
