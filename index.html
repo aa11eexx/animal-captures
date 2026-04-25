@@ -69,7 +69,6 @@
     .record-sub { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .record-id { font-size: 11px; color: var(--muted); margin-top: 2px; }
     .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
-    .badge-captured    { background: #fff3cd; color: #7a5800; }
     .badge-shelter     { background: #dbeafe; color: #1e3a8a; }
     .badge-backtoowner { background: #d1fae5; color: #065f46; }
     .uzavreté-tag { font-size: 11px; color: var(--muted); background: var(--surface2); border-radius: 4px; padding: 2px 6px; margin-left: 6px; font-weight: 400; }
@@ -183,7 +182,7 @@
       /* Topbar */
       .topbar { padding: 0 0.75rem; }
       .topbar-title { font-size: 15px; }
-      .home-btn { width: 32px; height: 32px; border-radius: 8px; border: .5px solid var(--border-strong); background: var(--surface2); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; text-decoration: none; flex-shrink: 0; }
+    .home-btn { width: 32px; height: 32px; border-radius: 8px; border: .5px solid var(--border-strong); background: var(--surface2); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; text-decoration: none; flex-shrink: 0; }
     .home-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
     .status-pill { font-size: 11px; padding: 3px 8px; }
 
@@ -252,9 +251,8 @@
     </div>
     <div class="filter-row">
       <button class="filter-btn active" onclick="setFilter('all',this)">Všetky</button>
-      <button class="filter-btn" onclick="setFilter('active',this)">Aktívne</button>
-      <button class="filter-btn" onclick="setFilter('closed',this)">Uzavreté</button>
-
+      <button class="filter-btn" onclick="setFilter('shelter',this)">Na útulok</button>
+      <button class="filter-btn" onclick="setFilter('backtoowner',this)">Majiteľovi</button>
     </div>
     <div id="records-list"><div class="empty">Načítavanie...</div></div>
   </div>
@@ -351,7 +349,7 @@
           </div>
           <div class="form-group full"><label>Majiteľ (ak je známy)</label><input type="text" id="f-owner" placeholder="Meno, adresa, kontakt..." /></div>
           <div class="form-group full"><label>Ukončenie</label>
-            <select id="f-finished"><option value="">-</option><option value="shelter">Zviera odovzdané na útulok</option><option value="backtoowner">Zviera vrátené majiteľovi</option></select>
+            <select id="f-finished"><option value="">-</option><option value="shelter">Odovzdané na útulok</option><option value="backtoowner">Odovzdané majiteľovi</option></select>
           </div>
         </div>
       </div>
@@ -494,7 +492,7 @@
     container.innerHTML = filtered.map(r => {
       const icon    = r.type==="Pes"?"🐕":r.type==="Mačka"?"🐈":"🐾";
       const bg      = r.type==="Pes"?"#fef3c7":r.type==="Mačka"?"#e0f2fe":"#f1f5f9";
-      const [sl,sc] = STATUS_MAP[r.status]||["—","badge-captured"];
+      const [sl,sc] = STATUS_MAP[r.status]||["—","badge-shelter"];
       const isClosed = CLOSED.includes(r.status);
       const rid     = r.id.slice(-6).toUpperCase();
       const isOpen  = openId === r.id;
@@ -579,9 +577,8 @@
               <div class="edit-group full"><label class="edit-label">Majiteľ</label><input class="edit-field" id="e-owner" value="${r.owner||""}"></div>
               <div class="edit-group full"><label class="edit-label">Ukončenie</label>
                 <select class="edit-field edit-select" id="e-finished">
-                  <option value="">Stále aktívne</option>
-                  <option value="shelter" ${r.status==="shelter"?"selected":""}>Zviera odovzdané na útulok</option>
-                  <option value="backtoowner" ${r.status==="backtoowner"?"selected":""}>Zviera vrátené majiteľovi</option>
+                  <option value="shelter" ${r.status==="shelter"?"selected":""}>Odovzdané na útulok</option>
+                  <option value="backtoowner" ${r.status==="backtoowner"?"selected":""}>Odovzdané majiteľovi</option>
                 </select>
               </div>
               <div class="edit-group full"><label class="edit-label">Poznámky</label><textarea class="edit-field ta" id="e-notes">${r.notes||""}</textarea></div>
@@ -611,7 +608,7 @@
               ${df("Oznamovateľ",r.reportedBy)}${df("Spôsob nahlásenia",r.howReported)}
               ${df("Zviera odchytil",r.caughtBy)}${df("Hliadka",r.shift)}
               ${df("Majiteľ",r.owner)}
-              ${df("Ukončenie",r.status==="shelter"?"Zviera odovzdané na útulok":r.status==="backtoowner"?"Zviera vrátené majiteľovi":r.finished||"Stále aktívne")}
+              ${df("Ukončenie",r.status==="shelter"?"Odovzdané na útulok":r.status==="backtoowner"?"Odovzdané majiteľovi":"—")}
             </div>
           </div>
           ${r.notes?`<div class="stage"><div style="font-size:13px;color:var(--text);line-height:1.6">${r.notes}</div></div>`:""}
@@ -746,7 +743,7 @@
   window.saveEdit     = id => {
     const g = s => { const el=document.getElementById(s); return el?el.value.trim():""; };
     const finished = g("e-finished");
-    const status   = finished || "captured";
+    const status   = finished || r.status || "shelter";
     update(ref(db,"captures/"+id), {
       date:        g("e-date"),
       time:        g("e-time"),
@@ -817,7 +814,7 @@
           place=document.getElementById("f-place").value.trim(), type=document.getElementById("f-type").value,
           caughtBy=document.getElementById("f-caught-by").value;
     if(!date||!place){alert("Vyplňte prosím dátum a miesto odchytu.");return;}
-    const finished=document.getElementById("f-finished").value, status=finished||"captured";
+    const finished=document.getElementById("f-finished").value, status=finished||"shelter";
     const photoFile=document.getElementById("f-photo").files[0];
     const btn=document.getElementById("submit-btn"); btn.disabled=true;
     let photoUrl=null;
@@ -900,7 +897,7 @@
     twoCol("Oznamovateľ",r.reportedBy,"Spôsob nahlásenia",r.howReported);
     twoCol("Zviera odchytil",r.caughtBy,"Hliadka",r.shift);
     oneCol("Majiteľ (ak je známy)",r.owner);
-    oneCol("Ukončenie",r.status==="shelter"?"Zviera odovzdané na útulok":r.status==="backtoowner"?"Zviera vrátené majiteľovi":"Stále aktívne");
+    oneCol("Ukončenie",r.status==="shelter"?"Odovzdané na útulok":r.status==="backtoowner"?"Odovzdané majiteľovi":"—");
 
     if(r.notes){ section(4,"Poznámky"); oneCol("",r.notes); }
 
