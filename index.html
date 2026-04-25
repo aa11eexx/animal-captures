@@ -611,7 +611,7 @@
               ${df("Ukončenie",r.status==="shelter"?"Odovzdané na útulok":r.status==="backtoowner"?"Odovzdané majiteľovi":"—")}
             </div>
           </div>
-          ${r.notes?`<div class="stage"><div class="df-label" style="margin-bottom:4px">Poznámky</div><div style="font-size:13px;color:var(--text);line-height:1.6">${r.notes}</div></div>`:""}
+          ${r.notes?`<div class="stage"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Poznámky</div><div style="font-size:13px;font-weight:500;color:var(--text);line-height:1.6">${r.notes}</div></div>`:""}
           <div class="detail-actions">
             <button class="action-btn edit" onclick="event.stopPropagation();startEdit('${r.id}')">Upraviť</button>
             <button class="action-btn del" onclick="deleteRecord('${r.id}')" title="Vymazať záznam" style="width:36px;padding:0;display:flex;align-items:center;justify-content:center">
@@ -869,7 +869,11 @@
     let y=32;
 
     function section(num,title){
-      y+=8;
+      y+=4;
+      doc.setDrawColor(200,200,200); doc.setLineWidth(0.2);
+      doc.line(M, y, W-M, y); y+=5;
+      doc.setTextColor(120,116,106); doc.setFontSize(8); doc.setFont("Lato","bold");
+      doc.text(title, M, y); y+=6;
     }
     function twoCol(l1,v1,l2,v2){
       const half=CW/2-4; let lines=1;
@@ -899,7 +903,7 @@
     oneCol("Majiteľ (ak je známy)",r.owner);
     oneCol("Ukončenie",r.status==="shelter"?"Odovzdané na útulok":r.status==="backtoowner"?"Odovzdané majiteľovi":"—");
 
-    if(r.notes){ section(4,"Poznámky"); oneCol("",r.notes); }
+    if(r.notes){ section(4,"Poznámky"); oneCol("Poznámky",r.notes); }
 
     doc.setFillColor(240,242,245); doc.rect(0,287,W,10,"F");
     doc.setTextColor(120,116,106); doc.setFontSize(8);
